@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Şehir Yarışı</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        
+        /* Şehir Seçme Alanı */
+        .select-wrapper { margin-bottom: 30px; }
+        select { width: 300px; padding: 15px; background: #000; color: #ff0000; border: 2px solid #ff0000; font-size: 18px; border-radius: 30px; cursor: pointer; outline: none; text-align: center; }
+
+        /* Parlayan Yuvarlak Buton */
+        .btn-vote { 
+            width: 180px; height: 180px; border-radius: 50%; background: #ff0000; 
+            border: 8px solid #330000; color: white; font-weight: bold; font-size: 24px;
+            cursor: pointer; box-shadow: 0 0 30px #ff0000, inset 0 0 20px #990000;
+            transition: 0.3s; text-transform: uppercase;
+        }
+        .btn-vote:hover { transform: scale(1.05); box-shadow: 0 0 50px #ff0000; }
+
+        /* Podyum */
+        .podium-horizontal { display: flex; justify-content: center; align-items: flex-end; gap: 15px; height: 200px; margin-top: 40px; }
+        .podium-item { width: 150px; background: #111; border: 2px solid #333; padding: 20px; border-radius: 15px 15px 0 0; }
+        .gold { height: 160px; border-color: #FFD700; color: #FFD700; box-shadow: 0 0 15px #FFD700; }
+        .silver { height: 120px; border-color: #C0C0C0; color: #C0C0C0; }
+        .bronze { height: 90px; border-color: #CD7F32; color: #CD7F32; }
+
+        /* Liste */
+        .table-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 40px; }
+        .row { background: #111; padding: 15px; border-radius: 10px; border-left: 5px solid #ff0000; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ŞEHRİNİ SEÇ</h1>
+        <div class="select-wrapper">
+            <select id="citySelect"></select>
+        </div>
+        
+        <button class="btn-vote" onclick="vote()">OY VER</button>
+
+        <div id="podium" class="podium-horizontal"></div>
+        <div id="list" class="table-grid"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://localhost:3000");
+        const select = document.getElementById('citySelect');
+        const podiumClasses = ['silver', 'gold', 'bronze']; 
+        
+        socket.on('updateScores', (scores) => {
+            if(select.options.length === 0) {
+                Object.keys(scores).sort().forEach(c => {
+                    let opt = document.createElement('option'); opt.value = c; opt.innerHTML = c;
+                    select.appendChild(opt);
+                });
+            }
+            const sorted = Object.entries(scores).sort((a,b) => b[1] - a[1]);
+            const top3 = [sorted[1], sorted[0], sorted[2]];
+            
+            document.getElementById('podium').innerHTML = top3.map((v, i) => v ? 
+                `<div class="podium-item ${podiumClasses[i]}">
+                    <i class="fas fa-crown fa-2x"></i>
+                    <h3>${v[0]}</h3><b>${v[1]}</b>
+                 </div>` : '').join('');
+            
+            document.getElementById('list').innerHTML = sorted.map((v, i) => 
+                `<div class="row"><span>${i+1}. ${v[0]}</span> <b>${v[1]}</b></div>`).join('');
+        });
+
+        function vote() { socket.emit('vote', select.value); }
+    </script>
+</body>
+</html>
